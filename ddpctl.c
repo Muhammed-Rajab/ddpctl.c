@@ -13,6 +13,7 @@
 
 #include "include/config.h"
 
+// global configuration for cli
 Config g_cfg = {.filename = NULL, .brightness = 0.5f, .loop_count = -1};
 
 int main(int argc, char **argv) {
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
   struct DDP ddp;
   ddp.header = header;
 
-  // load gif frames and delays in between
+  // load gif frames, delays in between, and frame count
   uint8_t **frames = NULL;
   size_t *delays_in_ms = NULL;
 
@@ -54,6 +55,7 @@ int main(int argc, char **argv) {
     // update only data
     ddp.data = frames[cur_frame_index];
 
+    // serialize packet
     size_t packet_size = 0;
     uint8_t *serialized_packet = DDP_serialize(&ddp, &packet_size);
 
@@ -67,18 +69,20 @@ int main(int argc, char **argv) {
     fwrite(serialized_packet, 1, packet_size, stdout);
     fflush(stdout);
 
-    free(serialized_packet);
-
+    // delay before next frame
     usleep(delays_in_ms[cur_frame_index] * 1000);
 
     // move to next frame
     cur_frame_index += 1;
 
-    // loop
+    // loop management
     if (cur_frame_index == frame_count) {
       cur_frame_index = 0;
       loops_done += 1;
     }
+
+    // release
+    free(serialized_packet);
   }
 
   // clean the other mess (maybe use valgrind?)

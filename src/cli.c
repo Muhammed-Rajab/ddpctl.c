@@ -57,10 +57,10 @@ void parse_cli(int argc, char **argv, Config *cfg) {
     case 'h':
     default:
       fprintf(stderr,
-              "Usage: %s -f <gif> [-b <0-1>] [-l <loops>]\n"
+              "usage: %s -f <gif> [-b <0-1>] [-l <loops>]\n"
               "  -f <gif>    GIF filename (required)\n"
-              "  -b <0-1>    Brightness (default 0.5)\n"
-              "  -l <n>      Loop count (-1 = infinite, default)\n",
+              "  -b <0-1>    brightness (default 0.5)\n"
+              "  -l <n>      loop count (-1 = infinite, default)\n",
               argv[0]);
       exit(0);
     }
