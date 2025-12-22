@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// for all my needs, 10 bytes header is enough
 #define DDP_HEADER_SIZE 10
 
+// header structure of a DDP packet
 struct ddp_header {
   uint8_t flags;   // 0x41
   uint8_t res1;    // 0x0
@@ -19,6 +21,7 @@ typedef uint8_t *ddp_data;
 
 uint8_t *ddp_header_serialize(const struct ddp_header *header);
 
+// DDP packet
 struct DDP {
   struct ddp_header header;
   ddp_data data;
