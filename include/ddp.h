@@ -18,7 +18,6 @@ struct ddp_header {
 typedef uint8_t *ddp_data;
 
 uint8_t *ddp_header_serialize(const struct ddp_header *header);
-uint8_t *ddp_header_allocate_databuf(const struct ddp_header *header);
 
 struct DDP {
   struct ddp_header header;

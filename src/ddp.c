@@ -26,15 +26,6 @@ uint8_t *ddp_header_serialize(const struct ddp_header *header) {
   return buf; // 10 byte
 }
 
-uint8_t *ddp_header_allocate_databuf(const struct ddp_header *header) {
-  uint8_t *databuf = (uint8_t *)malloc(header->length);
-
-  if (!databuf)
-    return NULL;
-
-  return databuf;
-}
-
 uint8_t *DDP_serialize(const struct DDP *ddp, size_t *packet_size) {
   if (!ddp || !packet_size)
     return NULL;
