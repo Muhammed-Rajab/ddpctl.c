@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 
 #define DDP_HEADER_SIZE 10
 
@@ -39,6 +40,15 @@ uint8_t *ddp_header_serialize(const struct ddp_header *header) {
   memcpy(buf + 8, &len, 2);
 
   return buf; // 10 byte
+}
+
+uint8_t *ddp_header_allocate_databuf(const struct ddp_header *header) {
+  uint8_t *databuf = (uint8_t *)malloc(header->length);
+
+  if (!databuf)
+    return NULL;
+
+  return databuf;
 }
 
 struct DDP {
