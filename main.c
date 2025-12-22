@@ -1,16 +1,17 @@
+#include <errno.h>
+#include <getopt.h>
+#include <limits.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
 
 #include "ddp.h"
 #include "gifdec.h"
-
-// macros
-#define CLAMP(x) ((x) < 0 ? 0 : (x) > 255 ? 255 : (x))
 
 // dimension of the matrix
 #define MATRIX_WIDTH 16
@@ -18,9 +19,6 @@
 
 #define BYTES_PER_LED 3
 #define NUM_LEDS (MATRIX_WIDTH * MATRIX_HEIGHT)
-
-// led brightness [0.0, 1.0]
-#define BRIGHTNESS 0.5
 
 // gamma correction per channel
 #define R_GAMMA 2.2f
@@ -32,9 +30,81 @@
 #define G_CORRECTION 0.82f
 #define B_CORRECTION 0.70f
 
-// configs
-#define LOOP_FOREVER
+// config
 #define MIN_DELAY_IN_MS 16
+typedef struct {
+  const char *filename; // file path
+  float brightness;     // [0.0, 1.0]
+  int loop_count;       // -1 = infinite
+} Config;
+
+Config g_cfg = {.filename = NULL, .brightness = 0.5f, .loop_count = -1};
+
+void parse_cli(int argc, char **argv) {
+  int opt;
+
+  while ((opt = getopt(argc, argv, "f:b:l:h")) != -1) {
+    switch (opt) {
+
+    case 'f':
+      g_cfg.filename = optarg;
+      break;
+
+    case 'b': {
+      char *end;
+      errno = 0;
+      g_cfg.brightness = strtof(optarg, &end);
+
+      if (errno || end == optarg || g_cfg.brightness < 0.0f ||
+          g_cfg.brightness > 1.0f) {
+        fprintf(stderr, "invalid brightness: %s (0.0–1.0)\n", optarg);
+        exit(1);
+      }
+      break;
+    }
+
+    case 'l': {
+      char *end;
+      errno = 0;
+      long v = strtol(optarg, &end, 10);
+
+      if (v < -1 || v > INT_MAX) {
+        fprintf(stderr, "loop count out of range\n");
+        exit(1);
+      }
+
+      if (errno || end == optarg) {
+        fprintf(stderr, "invalid loop count: %s\n", optarg);
+        exit(1);
+      }
+
+      g_cfg.loop_count = (int)v;
+
+      if (g_cfg.loop_count == 0) {
+        fprintf(stderr, "loop count 0: nothing to play\n");
+        exit(1);
+      }
+
+      break;
+    }
+
+    case 'h':
+    default:
+      fprintf(stderr,
+              "Usage: %s -f <gif> [-b <0-1>] [-l <loops>]\n"
+              "  -f <gif>    GIF filename (required)\n"
+              "  -b <0-1>    Brightness (default 0.5)\n"
+              "  -l <n>      Loop count (-1 = infinite, default)\n",
+              argv[0]);
+      exit(0);
+    }
+  }
+
+  if (!g_cfg.filename) {
+    fprintf(stderr, "GIF filename required (-f)\n");
+    exit(1);
+  }
+}
 
 // precalculate gamma values
 uint8_t gamma_lut_r[256];
@@ -101,6 +171,13 @@ size_t extract_gif_frames(const char *fname, uint8_t ***frames,
     int delay_in_ms = handler->gce.delay * 10;
 
     uint8_t *frame_buffer = (uint8_t *)malloc(NUM_LEDS * BYTES_PER_LED);
+    if (!frame_buffer) {
+      free(*frames);
+      free(*delays_in_ms);
+      gd_close_gif(handler);
+      fprintf(stderr, "framebuffer allocation failed\n");
+      return 0;
+    }
 
     gd_render_frame(handler, frame_buffer);
 
@@ -116,9 +193,9 @@ size_t extract_gif_frames(const char *fname, uint8_t ***frames,
       b = clamp_u8((int)(b * B_CORRECTION));
 
       // brightness
-      r = (uint8_t)(r * BRIGHTNESS);
-      g = (uint8_t)(g * BRIGHTNESS);
-      b = (uint8_t)(b * BRIGHTNESS);
+      r = (uint8_t)(r * g_cfg.brightness);
+      g = (uint8_t)(g * g_cfg.brightness);
+      b = (uint8_t)(b * g_cfg.brightness);
 
       // gamma correction
       r = gamma_lut_r[clamp_u8(r)];
@@ -154,8 +231,12 @@ void free_frames_and_delays(uint8_t **frames, size_t *delays,
   free(delays);
 }
 
-int main() {
+int main(int argc, char **argv) {
 
+  // parse cli
+  parse_cli(argc, argv);
+
+  // precalculate gamma values
   init_gamma();
 
   // create ddp header
@@ -176,15 +257,16 @@ int main() {
   size_t *delays_in_ms = NULL;
 
   size_t frame_count =
-      extract_gif_frames("./resized.gif", &frames, &delays_in_ms);
+      extract_gif_frames(g_cfg.filename, &frames, &delays_in_ms);
   if (frame_count == 0 || !frames || !delays_in_ms) {
     fprintf(stderr, "failed to extract frames\n");
     return 1;
   }
 
   size_t cur_frame_index = 0;
+  int loops_done = 0;
 
-  while (1) {
+  while (g_cfg.loop_count < 0 || loops_done < g_cfg.loop_count) {
     // update only data
     ddp.data = frames[cur_frame_index];
 
@@ -193,6 +275,7 @@ int main() {
 
     if (!serialized_packet || packet_size == 0) {
       fprintf(stderr, "failed to serialize ddp to packet\n");
+      free_frames_and_delays(frames, delays_in_ms, frame_count);
       return 1;
     }
 
@@ -207,12 +290,11 @@ int main() {
     // move to next frame
     cur_frame_index += 1;
 
-#ifdef LOOP_FOREVER
     // loop
-    if (cur_frame_index % frame_count == 0) {
+    if (cur_frame_index == frame_count) {
       cur_frame_index = 0;
+      loops_done += 1;
     }
-#endif
   }
 
   // clean the other mess (maybe use valgrind?)
