@@ -31,12 +31,13 @@ size_t extract_gif_frames(const char *fname, uint8_t ***frames,
     return 0;
   }
 
-  if (handler->width != MATRIX_WIDTH || handler->height != MATRIX_HEIGHT) {
+  float ar = (float)handler->width / (float)handler->height;
+
+  if (fabsf(ar - 1.0f) > 0.02f) {
     *frames = NULL;
     *delays_in_ms = NULL;
     gd_close_gif(handler);
-    fprintf(stderr, "can't accept non %dx%d for now\n", MATRIX_WIDTH,
-            MATRIX_HEIGHT);
+    fprintf(stderr, "the gif is not square enough (%.3f)\n", ar);
     return 0;
   }
 
