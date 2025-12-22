@@ -31,6 +31,7 @@ size_t extract_gif_frames(const char *fname, uint8_t ***frames,
     return 0;
   }
 
+  // gif aspect ratio, important for sampling
   float ar = (float)handler->width / (float)handler->height;
 
   if (fabsf(ar - 1.0f) > 0.02f) {
@@ -58,10 +59,14 @@ size_t extract_gif_frames(const char *fname, uint8_t ***frames,
     return 0;
   }
 
+  // we basically partition the gif into cells of the following width
+  // and height so that we can sample color from the middle of the cell
+  // which isn't the worst way of doing this.
   int cell_w = handler->width / MATRIX_WIDTH;
   int cell_h = handler->height / MATRIX_HEIGHT;
 
-  size_t current_frame = 0;
+  size_t cur_frame_index = 0;
+
   while (gd_get_frame(handler) != 0) {
 
     int delay_in_ms = handler->gce.delay * 10;
@@ -114,37 +119,10 @@ size_t extract_gif_frames(const char *fname, uint8_t ***frames,
       }
     }
 
-    // for (int i = 0; i < NUM_LEDS; i++) {
-    //
-    //   uint8_t r = frame_buffer[i * 3 + 0];
-    //   uint8_t g = frame_buffer[i * 3 + 1];
-    //   uint8_t b = frame_buffer[i * 3 + 2];
-    //
-    //   // color correction
-    //   r = clamp_u8((int)(r * R_CORRECTION));
-    //   g = clamp_u8((int)(g * G_CORRECTION));
-    //   b = clamp_u8((int)(b * B_CORRECTION));
-    //
-    //   // brightness
-    //   r = (uint8_t)(r * br);
-    //   g = (uint8_t)(g * br);
-    //   b = (uint8_t)(b * br);
-    //
-    //   // gamma correction
-    //   r = gamma_lut_r[clamp_u8(r)];
-    //   g = gamma_lut_g[clamp_u8(g)];
-    //   b = gamma_lut_b[clamp_u8(b)];
-    //
-    //   // update frame buffer
-    //   frame_buffer[i * 3 + 0] = r;
-    //   frame_buffer[i * 3 + 1] = g;
-    //   frame_buffer[i * 3 + 2] = b;
-    // }
-    //
-    (*frames)[current_frame] = data_buffer;
-    (*delays_in_ms)[current_frame] =
+    (*frames)[cur_frame_index] = data_buffer;
+    (*delays_in_ms)[cur_frame_index] =
         delay_in_ms <= 0 ? MIN_DELAY_IN_MS : delay_in_ms;
-    current_frame += 1;
+    cur_frame_index += 1;
     free(frame_buffer);
   }
 

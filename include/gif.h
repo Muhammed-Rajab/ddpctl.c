@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+// precalculate gamma values for each channel
 void init_gamma(void);
 
 static inline uint8_t clamp_u8(int x) {
