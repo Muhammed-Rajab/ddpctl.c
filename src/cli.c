@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "cli.h"
+#include "../include/cli.h"
 
 void parse_cli(int argc, char **argv, Config *cfg) {
   int opt;

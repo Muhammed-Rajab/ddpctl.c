@@ -1,10 +1,10 @@
-#include "gif.h"
+#include "../include/gif.h"
 
 #include <math.h>
 #include <stdio.h>
 
-#include "config.h"
-#include "gifdec.h"
+#include "../include/config.h"
+#include "../lib/gifdec/gifdec.h"
 
 // precalculate gamma values
 uint8_t gamma_lut_r[256];

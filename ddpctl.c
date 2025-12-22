@@ -7,11 +7,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "cli.h"
-#include "ddp.h"
-#include "gif.h"
+#include "include/cli.h"
+#include "include/ddp.h"
+#include "include/gif.h"
 
-#include "config.h"
+#include "include/config.h"
 
 Config g_cfg = {.filename = NULL, .brightness = 0.5f, .loop_count = -1};
 
