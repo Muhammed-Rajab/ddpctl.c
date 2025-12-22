@@ -14,9 +14,13 @@
 #define B_GAMMA 2.4f
 
 // color correction per channel
+// #define R_CORRECTION 1.00f
+// #define G_CORRECTION 0.82f
+// #define B_CORRECTION 0.70f
+
 #define R_CORRECTION 1.00f
-#define G_CORRECTION 0.82f
-#define B_CORRECTION 0.70f
+#define G_CORRECTION 1.00f
+#define B_CORRECTION 1.00f
 
 // config
 #define MIN_DELAY_IN_MS 16
