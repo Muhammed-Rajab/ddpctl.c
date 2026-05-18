@@ -12,8 +12,8 @@
 // gamma correction per channel. tune these values according to
 // your LED's response.
 #define R_GAMMA 2.2f
-#define G_GAMMA 2.0f
-#define B_GAMMA 2.4f
+#define G_GAMMA 2.2f
+#define B_GAMMA 2.2f
 
 // color correction per channel (for me 1.00f is good enough)
 #define R_CORRECTION 1.00f
